@@ -1,0 +1,5 @@
+primary_repo: https://github.com/uny/XCRemoteCache-KMP.git
+cache_addresses:
+  - http://sample.s3.ap-northeast-1.localhost.localstack.cloud:4566
+repo_root: ".."
+primary_branch: "main"

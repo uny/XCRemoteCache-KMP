@@ -1,0 +1,40 @@
+name: XCRemoteCache
+on:
+  workflow_dispatch:
+jobs:
+  main:
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Start Colima
+        run: |
+          brew install docker colima
+          colima start
+      - uses: LocalStack/setup-localstack@v0.2.4
+      - name: Create Bucket
+        run: awslocal s3api create-bucket --bucket sample --create-bucket-configuration LocationConstraint=ap-northeast-1 --region=ap-northeast-1
+      - name: Download XCRemoteCache
+        run: |
+          curl -L -o /tmp/xc.zip https://github.com/spotify/XCRemoteCache/releases/download/v0.3.29/XCRemoteCache-macOS-x86_64-v0.3.29.zip \
+          && unzip -o /tmp/xc.zip -d iosApp/xcremotecache
+      - name: Producer Mode
+        working-directory: iosApp
+        run: xcremotecache/xcprepare integrate --input iosApp.xcodeproj --mode producer --final-producer-target iosApp
+      - name: Producer Build
+        working-directory: iosApp
+        run: xcodebuild -project iosApp.xcodeproj -target iosApp -configuration Debug -sdk iphonesimulator build
+      # - name: Clean
+      #   working-directory: iosApp
+      #   run: xcodebuild -project iosApp.xcodeproj -target iosApp -configuration Debug -sdk iphonesimulator clean
+      - name: Consumer Mode
+        working-directory: iosApp
+        run: xcremotecache/xcprepare integrate --input iosApp.xcodeproj --mode consumer
+      - name: Consumer Build
+        working-directory: iosApp
+        run: xcodebuild -project iosApp.xcodeproj -target iosApp -configuration Debug -sdk iphonesimulator build
